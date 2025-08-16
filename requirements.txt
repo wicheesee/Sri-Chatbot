@@ -1,0 +1,16 @@
+python-dotenv
+pypdf2
+langchain
+langchain-openai
+langchain-google-genai
+langchain-community
+langchain-experimental
+pydantic
+langchain-chroma
+chromadb 
+bm25-retriever
+sentence-transformers
+torch
+gradio
+IPython
+langchain-ollama
