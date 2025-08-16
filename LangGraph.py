@@ -77,7 +77,10 @@ react_graph = builder.compile()
 
 # # Show
 # display(Image(react_graph.get_graph(xray=True).draw_mermaid_png()))
-messages = [HumanMessage(content="Jam berapa sekarang di Jakarta? Bagaimana cuacanya? Dan cari informasi tentang berbagai jenis songket dalam dokumen yang ada.")]
+messages = [HumanMessage(content=
+"""
+Apa yang kamu ketahui tentang songket. Untuk songket yang cocok dengan cuaca hari ini songket jenis apa?
+""")]
 messages = react_graph.invoke({"messages": messages})
 for m in messages['messages']:
     m.pretty_print()

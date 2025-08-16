@@ -14,7 +14,7 @@ from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import CharacterTextSplitter
 from models.document_models import DocumentSearchArgs
 load_dotenv()
-os.environ['OPENAI_API_KEY'] = os.getenv('OPENAI_API_KEY', 'your-key-if-not-using-env')
+OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 
 # GLOBAL VARIABLES (LAZY LOADING)
 _retriever = None
@@ -77,8 +77,8 @@ def _initialize_retriever():
             return _retriever
         
         # Setup hybrid retrieval
-        vector_retriever = vectorstore.as_retriever(search_kwargs={"k": 8})
-        bm25_retriever = BM25Retriever.from_documents(documents, k=8)
+        vector_retriever = vectorstore.as_retriever(search_kwargs={"k": 10})
+        bm25_retriever = BM25Retriever.from_documents(documents, k=10)
         
         ensemble_retriever = EnsembleRetriever(
             retrievers=[bm25_retriever, vector_retriever],
@@ -87,7 +87,7 @@ def _initialize_retriever():
         
         # Setup reranker
         reranker_model = HuggingFaceCrossEncoder(model_name="BAAI/bge-reranker-base")
-        compressor = CrossEncoderReranker(model=reranker_model, top_n=6)
+        compressor = CrossEncoderReranker(model=reranker_model, top_n=5)
         
         _retriever = ContextualCompressionRetriever(
             base_compressor=compressor,
