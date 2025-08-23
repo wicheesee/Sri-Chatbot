@@ -116,7 +116,6 @@ def search_documents(query: str, top_k: int = 10) -> str:
     if retriever is None:
         return "Document search tidak tersedia. Pastikan vectorstore sudah dibuat."
     try:
-        # limit top_k
         top_k = max(1, min(top_k, 10))
         
         # Lakukan pencarian

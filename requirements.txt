@@ -14,3 +14,4 @@ torch
 gradio
 IPython
 langchain-ollama
+psycopg2-binary

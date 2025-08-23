@@ -6,7 +6,6 @@ from langchain_openai import OpenAIEmbeddings
 from langchain_chroma import Chroma
 from langchain_community.document_loaders import PyPDFLoader
 
-# Load environment variables
 load_dotenv()
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 
@@ -24,7 +23,6 @@ def load_and_chunk_documents():
     documents = []
     for pdf_file in pdf_files:
         print(f"Loading: {pdf_file}")
-        # Extract doc_type from file name
         file_name = os.path.basename(pdf_file)
         doc_type = file_name.replace('.pdf', '').replace('.PDF', '')
         
@@ -72,20 +70,16 @@ def create_vectorstore(chunks, db_name="vector_db"):
     )
     collection = vectorstore._collection
     count = collection.count()
-    # Get sample embedding info
     sample_embedding = collection.get(limit=1, include=["embeddings"])["embeddings"][0]
     dimensions = len(sample_embedding)
-    
     print(f"Vectorstore created successfully!")
     print(f"{count:,} vectors with {dimensions:,} dimensions stored in '{db_name}'")
-    
     return vectorstore
 
 def main():
     """Main function to create vectorstore"""
     print("Starting vectorstore creation process...")
     
-    # Load and chunk documents
     chunks = load_and_chunk_documents()
     
     if not chunks:

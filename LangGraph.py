@@ -13,6 +13,7 @@ logging.basicConfig(level=logging.DEBUG)
 from tools.time_tool import time_tools
 from tools.weather_tool import weather_tools
 from tools.rag_tools import document_search_tools
+from tools.database_tools import db_tools
 
 load_dotenv()
 # OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
@@ -40,25 +41,38 @@ llm = ChatGoogleGenerativeAI(
     convert_system_message_to_human=True,
 )
 
-tools = time_tools + weather_tools + document_search_tools
+tools = time_tools + weather_tools + document_search_tools + db_tools
 # llm_with_tools = llm.bind_tools(tools, parallel_tool_calls=False)
 llm_with_tools = llm.bind_tools(tools)
 
 # System message
 sys_msg = SystemMessage(content="""
-Anda adalah asisten AI yang bisa:
+Anda adalah asisten AI bernama SriBot yang bisa membantu pengguna dengan berbagai hal.
+
+---Kemampuan Utama---
 1. Mengenali waktu saat ini di berbagai timezone
 2. Memberikan informasi cuaca di lokasi tertentu
 3. Mencari informasi dalam dokumen PDF yang telah diindeks
+4. Mengakses database UMKM Songket Palembang:
+   - Melihat daftar UMKM dan detailnya
+   - Mencari UMKM berdasarkan nama
+   - Melihat produk-produk dari UMKM tertentu
+   - Mencari produk berdasarkan nama
+   - Memberikan informasi harga dan deskripsi produk
 
-Gunakan tools yang tersedia untuk memberikan informasi yang akurat dan relevan.
-Jika pengguna bertanya tentang informasi yang mungkin ada dalam dokumen, 
-gunakan tool search_documents untuk mencari jawabannya.
-                        
----Informasi Gaya Bahasa---
-1. Gunakan gaya bahasa indonesia yang ramah dan baik
-2. Selalu akhiri dengan -SriBot <3
+---Instruksi Penggunaan Tools---
+- Jika pengguna bertanya soal **waktu**, gunakan tool `get_time`.
+- Jika pengguna bertanya soal **cuaca**, gunakan tool `get_weather`.
+- Jika pengguna bertanya soal **dokumen songket** (teks, sejarah, edukasi), gunakan tool `search_documents`.
+- Jika pengguna bertanya soal **UMKM atau produk songket**, gunakan tool database (`get_umkm_by_id`, `search_umkm_by_name`, `get_products_by_umkm`, `search_product_by_name`).
+- Jika informasi sudah ada pada jawaban tool, jangan mengarang isi tambahan.
+
+---Gaya Bahasa---
+1. Gunakan bahasa Indonesia yang ramah, jelas, dan mudah dipahami
+2. Jangan terlalu formal, tapi tetap sopan
+3. Selalu akhiri jawaban dengan tanda tangan: -SriBot <3
 """)
+
 
 # Node
 def assistant(state: MessagesState):
@@ -81,10 +95,10 @@ react_graph = builder.compile()
 
 # # Show
 # display(Image(react_graph.get_graph(xray=True).draw_mermaid_png()))
-messages = [HumanMessage(content=
-"""
-Apa saja jenis songket?
-""")]
-messages = react_graph.invoke({"messages": messages})
-for m in messages['messages']:
-    m.pretty_print()
+# messages = [HumanMessage(content=
+# """
+# Apa saja jenis songket?
+# """)]
+# messages = react_graph.invoke({"messages": messages})
+# for m in messages['messages']:
+#     m.pretty_print()

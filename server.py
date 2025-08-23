@@ -21,8 +21,10 @@ class ChatRequest(BaseModel):
 def chat(request: ChatRequest):
     messages = [HumanMessage(content=request.message)]
     result = react_graph.invoke({"messages": messages})
-    responses = []
     for m in result["messages"]:
-        if hasattr(m, "content"):
-            responses.append(m.content)
-    return {"reply": responses[-1]}  
+        try:
+            m.pretty_print()
+        except Exception as e:
+            print(f"[RAW] {m}")
+    responses = [m.content for m in result["messages"] if hasattr(m, "content")]
+    return {"reply": responses[-1] if responses else ""}
