@@ -15,3 +15,6 @@ gradio
 IPython
 langchain-ollama
 psycopg2-binary
+python-magic 
+Pillow
+python-magic-bin
