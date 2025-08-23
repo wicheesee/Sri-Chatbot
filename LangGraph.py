@@ -54,6 +54,10 @@ Anda adalah asisten AI yang bisa:
 Gunakan tools yang tersedia untuk memberikan informasi yang akurat dan relevan.
 Jika pengguna bertanya tentang informasi yang mungkin ada dalam dokumen, 
 gunakan tool search_documents untuk mencari jawabannya.
+                        
+---Informasi Gaya Bahasa---
+1. Gunakan gaya bahasa indonesia yang ramah dan baik
+2. Selalu akhiri dengan -SriBot <3
 """)
 
 # Node
@@ -79,7 +83,7 @@ react_graph = builder.compile()
 # display(Image(react_graph.get_graph(xray=True).draw_mermaid_png()))
 messages = [HumanMessage(content=
 """
-Apa yang kamu ketahui tentang songket. Untuk songket yang cocok dengan cuaca hari ini songket jenis apa?
+Apa saja jenis songket?
 """)]
 messages = react_graph.invoke({"messages": messages})
 for m in messages['messages']:

@@ -7,16 +7,15 @@ from langchain_openai import OpenAIEmbeddings
 from langchain_chroma import Chroma
 from langchain_community.retrievers import BM25Retriever
 from langchain.retrievers import EnsembleRetriever
-from langchain.retrievers import ContextualCompressionRetriever
-from langchain.retrievers.document_compressors import CrossEncoderReranker
-from langchain_community.cross_encoders import HuggingFaceCrossEncoder
+# from langchain.retrievers import ContextualCompressionRetriever
+# from langchain.retrievers.document_compressors import CrossEncoderReranker
+# from langchain_community.cross_encoders import HuggingFaceCrossEncoder
 from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import CharacterTextSplitter
 from models.document_models import DocumentSearchArgs
 load_dotenv()
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 
-# GLOBAL VARIABLES (LAZY LOADING)
 _retriever = None
 _initialized = False
 
@@ -36,7 +35,6 @@ def _load_documents_for_bm25():
                 doc.metadata["doc_type"] = doc_type
                 documents.append(doc)
         
-        # Split documents
         text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
         chunks = text_splitter.split_documents(documents)
         return chunks
@@ -69,14 +67,12 @@ def _initialize_retriever():
         
         # Load documents for BM25
         documents = _load_documents_for_bm25()
-        # 
         if not documents:
             print("No documents found for BM25. Using vector search only.")
             _retriever = vectorstore.as_retriever()
             _initialized = True
             return _retriever
         
-        # Setup hybrid retrieval
         vector_retriever = vectorstore.as_retriever(search_kwargs={"k": 10})
         bm25_retriever = BM25Retriever.from_documents(documents, k=10)
         
@@ -85,14 +81,15 @@ def _initialize_retriever():
             weights=[0.3, 0.7]
         )
         
-        # Setup reranker
-        reranker_model = HuggingFaceCrossEncoder(model_name="BAAI/bge-reranker-base")
-        compressor = CrossEncoderReranker(model=reranker_model, top_n=5)
+        # # Setup reranker
+        # reranker_model = HuggingFaceCrossEncoder(model_name="BAAI/bge-reranker-base")
+        # compressor = CrossEncoderReranker(model=reranker_model, top_n=5)
         
-        _retriever = ContextualCompressionRetriever(
-            base_compressor=compressor,
-            base_retriever=ensemble_retriever
-        )
+        # _retriever = ContextualCompressionRetriever(
+        #     base_compressor=compressor,
+        #     base_retriever=ensemble_retriever
+        # )
+        _retriever = ensemble_retriever
         
         _initialized = True
         print("Document search initialized successfully")
@@ -104,7 +101,7 @@ def _initialize_retriever():
 
 
 # MAIN TOOL FUNCTION
-def search_documents(query: str, top_k: int = 5) -> str:
+def search_documents(query: str, top_k: int = 10) -> str:
     """
     Mencari informasi dalam dokumen PDF yang telah diindeks.
     Args:
