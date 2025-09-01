@@ -74,6 +74,7 @@ def _initialize_retriever():
             return _retriever
         
         vector_retriever = vectorstore.as_retriever(search_kwargs={"k": 10})
+        # vector_retriever = vectorstore.as_retriever()
         bm25_retriever = BM25Retriever.from_documents(documents, k=10)
         
         ensemble_retriever = EnsembleRetriever(
@@ -90,6 +91,7 @@ def _initialize_retriever():
         #     base_retriever=ensemble_retriever
         # )
         _retriever = ensemble_retriever
+        # _retriever = vector_retriever
         
         _initialized = True
         print("Document search initialized successfully")
@@ -127,7 +129,6 @@ def search_documents(query: str, top_k: int = 10) -> str:
         formatted_results = []
         for i, doc in enumerate(results[:top_k], 1):
             content = doc.page_content.strip()
-            # Potong content jika terlalu panjang
             if len(content) > 500:
                 content = content[:500] + "..."
                 

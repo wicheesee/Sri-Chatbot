@@ -10,3 +10,5 @@ class GetProductsByUMKMArgs(BaseModel):
 class SearchUMKMByNameArgs(BaseModel):
     name: str = Field(description="Nama UMKM (atau sebagian nama) yang ingin dicari")
 
+class SearchProductByNameArgs(BaseModel):
+    product_name: str = Field(description="Nama produk (atau sebagian nama) yang ingin dicari")
