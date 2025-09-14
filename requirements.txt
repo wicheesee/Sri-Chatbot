@@ -18,3 +18,4 @@ psycopg2-binary
 python-magic 
 Pillow
 python-magic-bin
+langchain_redis

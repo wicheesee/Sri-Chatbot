@@ -1,13 +1,19 @@
+# import asyncio
 import os
 import glob
 from dotenv import load_dotenv
 from langchain.text_splitter import CharacterTextSplitter
-from langchain_openai import OpenAIEmbeddings
-from langchain_chroma import Chroma
+# from langchain_openai import OpenAIEmbeddings
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
+# from langchain_chroma import Chroma
 from langchain_community.document_loaders import PyPDFLoader
+from langchain_redis import RedisVectorStore
+import redis
 
 load_dotenv()
-OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
+# OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
+REDIS_URL=os.getenv("REDIS_URL")
+r = redis.from_url(REDIS_URL)
 
 def add_metadata(doc, doc_type):
     """Add metadata to document"""
@@ -53,27 +59,60 @@ def load_and_chunk_documents():
     print(f"Document types found: {set(doc.metadata['doc_type'] for doc in documents)}")
     return chunks
 
-def create_vectorstore(chunks, db_name="vector_db"):
+def create_vectorstore(chunks, db_name):
     """Create and save vectorstore from chunks"""
     print("Creating embeddings and vectorstore...")
     # Initialize embeddings
-    embeddings = OpenAIEmbeddings()
+    # embeddings = OpenAIEmbeddings()
+    embeddings = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001")
     # Delete existing collection if exists
     if os.path.exists(db_name):
         print(f"Deleting existing vectorstore: {db_name}")
-        Chroma(persist_directory=db_name, embedding_function=embeddings).delete_collection()
+        # Chroma(persist_directory=db_name, embedding_function=embeddings).delete_collection()
+        
     # Create new vectorstore
-    vectorstore = Chroma.from_documents(
-        documents=chunks, 
-        embedding=embeddings, 
-        persist_directory=db_name
+    # vectorstore = Chroma.from_documents(
+    #     documents=chunks, 
+    #     embedding=embeddings, 
+    #     persist_directory=db_name
+    # )
+
+    # collection = vectorstore._collection
+    # count = collection.count()
+    # sample_embedding = collection.get(limit=1, include=["embeddings"])["embeddings"][0]
+    # dimensions = len(sample_embedding)
+    # print(f"Vectorstore created successfully!")
+    # print(f"{count:,} vectors with {dimensions:,} dimensions stored in '{db_name}'")
+    # return vectorstore
+
+    try:
+        r.execute_command("FT.INFO", db_name)
+        print(f"Deleting existing vectorstore: {db_name}")
+        # delete all indexes and documents
+        r.execute_command("FT.DROPINDEX", db_name, "DD")
+    except redis.exceptions.ResponseError:
+        print(f"Tidak ada vectorstore bernama: {db_name}")
+
+    print("Creating new vectorstore...")
+    # Create new vectorstore (redis)
+    vectorstore = RedisVectorStore(
+        embeddings=embeddings,
+        index_name=db_name,
+        redis_url=REDIS_URL,
+        distance_metric="COSINE"
     )
-    collection = vectorstore._collection
-    count = collection.count()
-    sample_embedding = collection.get(limit=1, include=["embeddings"])["embeddings"][0]
-    dimensions = len(sample_embedding)
+
+    vectorstore.add_documents(chunks)
+    # sample_embedding = vectorstore._collection.get(limit=1, include=["embeddings"])["embeddings"][0]
+    # dimensions = len(sample_embedding) 
+    # res = r.execute_command("FT.SEARCH", db_name, "*", "RETURN", "2", "content", "embedding", "LIMIT", "0", "1")
+    # #print(res)  
+    # sample_embedding = embeddings.embed_query("contoh teks")
+    # print(len(sample_embedding))
+    # print(sample_embedding[:10])
+    # dimensions = len(sample_embedding)
     print(f"Vectorstore created successfully!")
-    print(f"{count:,} vectors with {dimensions:,} dimensions stored in '{db_name}'")
+    # print(f"vectors with {dimensions:,} dimensions stored in Redis under index '{db_name}'")
     return vectorstore
 
 def main():
