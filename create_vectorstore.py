@@ -15,6 +15,13 @@ load_dotenv()
 REDIS_URL=os.getenv("REDIS_URL")
 r = redis.from_url(REDIS_URL)
 
+INDEX_CONFIG = {
+    "embedding": {
+        "dimension": 1536,              
+        "distance_metric": "cosine"
+    }
+}
+
 def add_metadata(doc, doc_type):
     """Add metadata to document"""
     doc.metadata["doc_type"] = doc_type
@@ -99,7 +106,7 @@ def create_vectorstore(chunks, db_name):
         embeddings=embeddings,
         index_name=db_name,
         redis_url=REDIS_URL,
-        distance_metric="COSINE"
+        index_config=INDEX_CONFIG
     )
 
     vectorstore.add_documents(chunks)

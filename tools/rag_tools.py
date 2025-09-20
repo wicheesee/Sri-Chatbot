@@ -14,12 +14,20 @@ DB_NAME = "vector_db"
 _retriever = None
 _initialized = False
 
+INDEX_CONFIG = {
+    "embedding": {
+        "dimension": 1536,              
+        "distance_metric": "cosine"
+    }
+}
+
 def _create_vector_retriever():
     embeddings = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001")
     vectorstore = RedisVectorStore.from_existing_index(
         redis_url=REDIS_URL,
         index_name=DB_NAME,
-        embedding=embeddings
+        embedding=embeddings,
+        index_config=INDEX_CONFIG
     )
     return vectorstore.as_retriever(search_kwargs={"k": 10})
 

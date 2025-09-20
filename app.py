@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from langchain_core.messages import HumanMessage
-from Langgraph import react_graph 
+from LangGraph import react_graph
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional, Dict, Any, List, Union
 import logging 
@@ -57,6 +57,7 @@ app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 class ChatRequest(BaseModel):
     message: str
+    user_id: str
 
 class ChatResponse(BaseModel):
     reply: str
@@ -87,11 +88,9 @@ def validate_image_file(file: UploadFile) -> tuple[bool, str]:
         if file_size == 0:
             return False, "File kosong"
         
-        # Read file content
         contents = file.file.read()
         file.file.seek(0)
         
-        # Check MIME type using python-magic
         mime_type = magic.from_buffer(contents, mime=True)
         
         if mime_type not in ALLOWED_IMAGE_TYPES:
@@ -105,7 +104,7 @@ def validate_image_file(file: UploadFile) -> tuple[bool, str]:
         # Try to open and validate as image using PIL
         try:
             image = Image.open(io.BytesIO(contents))
-            image.verify()  # Verify it's a valid image
+            image.verify() 
         except Exception:
             return False, "File bukan gambar yang valid"
         return True, "Valid"
@@ -147,7 +146,6 @@ def extract_structured_data(messages):
                 
             content = content.strip()
             
-            # Skip if empty
             if not content:
                 continue
             
@@ -174,7 +172,6 @@ def extract_structured_data(messages):
                         images.extend(extract_images_from_data(parsed_data))
                         
             except json.JSONDecodeError:
-                # Not JSON, check for URLs in text
                 urls = re.findall(r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+', content)
                 for url in urls:
                     if any(ext in url.lower() for ext in ['.jpg', '.jpeg', '.png']):
@@ -241,7 +238,6 @@ async def upload_umkm_image(
             "file_size": len(contents),
             "mime_type": magic.from_buffer(contents, mime=True)
         })
-        
     except HTTPException:
         raise
     except Exception as e:
@@ -405,35 +401,53 @@ async def list_uploaded_files():
 @app.post("/chat", response_model=ChatResponse)
 def chat(request: ChatRequest):
     try:
-        messages = [HumanMessage(content=request.message)]
-        result = react_graph.invoke({"messages": messages})
+        # Import dari orchestrator
+        from LangGraph import react_graph
         
+        # Config dengan user_id yang passed via configurable
+        config = {
+            "configurable": {
+                "thread_id": "1234567",
+                "user_id": request.user_id  # Untuk tools akses via config
+            }
+        }
+        
+        logger.info(f"Processing chat for user_id: {request.user_id}")
+        
+        # Direct invoke dengan MessagesState (no initial_state needed)
+        result = react_graph.invoke(
+            {"messages": [HumanMessage(content=request.message)]},  # Built-in MessagesState
+            config=config  # Tools ambil user_id dari sini
+        )
+        
+        # Debug output
         for m in result["messages"]:
             try:
                 m.pretty_print()
             except Exception as e:
                 print(f"[RAW] {m}")
         
+        # Extract final response
         responses = [m.content for m in result["messages"] if hasattr(m, "content") and m.content]
         final_reply = responses[-1] if responses else "Maaf, saya tidak bisa memberikan respons."
         
+        # Extract structured data and images (dari function yang sudah ada)
         structured_data, images = extract_structured_data(result["messages"])
         
         print(f"DEBUG: Extracted structured_data: {structured_data}")
         print(f"DEBUG: Extracted images: {images}")
         
-        # Create response with proper defaults
         response = ChatResponse(
             reply=final_reply,
             data=structured_data,
             images=images
         )
-        
+
         print(f"DEBUG: Final response: {response}")
         return response
         
     except Exception as e:
-        print(f"Error in chat endpoint: {e}")
+        logger.error(f"Error in chat endpoint: {e}")
         import traceback
         traceback.print_exc()
         
@@ -442,9 +456,26 @@ def chat(request: ChatRequest):
             data={"status": "error", "message": str(e)},
             images=[]
         )
+    
+# Endpoint untuk testing memory
+@app.get("/memory/{user_id}")
+def get_user_memory(user_id: str):
+    """Endpoint untuk melihat semua memori user (untuk debugging)"""
+    try:
+        from tools.memory_tool import redis_store
+        namespace = ("memories", user_id)
+        memories = redis_store.search(namespace, query="")
+        
+        return {
+            "user_id": user_id,
+            "total_memories": len(memories),
+            "memories": [d.value["data"] for d in memories]
+        }
+    except Exception as e:
+        return {"error": str(e)}
 
-port =int(os.getenv("PORT"))
+port=int(os.getenv("PORT"))
 
 if __name__ == '__main__':
     logger.info(f"Starting Uvicorn server on http://0.0.0.0:{port}")
-    uvicorn.run("app:app", host="127.0.0.1", port=port, reload=True, log_level="info") 
+    uvicorn.run("app:app", host="127.0.0.1", port=port, reload=True, log_level="info")

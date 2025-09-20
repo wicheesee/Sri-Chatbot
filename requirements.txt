@@ -19,3 +19,5 @@ python-magic
 Pillow
 python-magic-bin
 langchain_redis
+langgraph[redis]
+langgraph-checkpoint-redis
