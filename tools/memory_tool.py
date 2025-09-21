@@ -8,6 +8,7 @@ from langchain.tools import StructuredTool
 from langchain_core.runnables import RunnableConfig
 from langchain_core.messages import SystemMessage, HumanMessage
 from pydantic import BaseModel
+from models.memory_models import EmptyArgs, SaveInfoArgs, AnalyzeMessageArgs
 
 load_dotenv()
 REDIS_URL = os.getenv("REDIS_URL")
@@ -34,16 +35,6 @@ memory_llm = ChatGoogleGenerativeAI(
     temperature=0,
     convert_system_message_to_human=True,
 )
-
-# Pydantic schemas (simple, no state injection)
-class EmptyArgs(BaseModel):
-    pass
-
-class SaveInfoArgs(BaseModel):
-    information: str
-
-class AnalyzeMessageArgs(BaseModel):
-    user_message: str
 
 def get_user_context(config: RunnableConfig) -> str:
     """
@@ -93,7 +84,6 @@ def save_important_info(information: str, config: RunnableConfig) -> str:
         print(f"Saved: {information}")
         print(f"Memory ID: {memory_id}")
         print(f"------------------------------------\n")
-        
         return f"✓ Informasi berhasil disimpan: {information}"
         
     except Exception as e:
@@ -109,26 +99,26 @@ def analyze_and_save_info(user_message: str, config: RunnableConfig) -> str:
         
         # LLM analysis untuk deteksi info penting
         analysis_prompt = f"""
-Analisis pesan user berikut dan tentukan apakah ada informasi personal/penting yang perlu disimpan:
+        Analisis pesan user berikut dan tentukan apakah ada informasi personal/penting yang perlu disimpan:
 
-Pesan user: "{user_message}"
+        Pesan user: "{user_message}"
 
-Tugas:
-1. Identifikasi informasi personal seperti: nama, lokasi, pekerjaan, hobi, preferensi, keluarga, dll.
-2. Jika ada informasi penting, ekstrak dalam format yang jelas
-3. Jika tidak ada informasi penting, jawab "NONE"
+        Tugas:
+        1. Identifikasi informasi personal seperti: nama, lokasi, pekerjaan, hobi, preferensi, keluarga, dll.
+        2. Jika ada informasi penting, ekstrak dalam format yang jelas
+        3. Jika tidak ada informasi penting, jawab "NONE"
 
-Format response:
-- Jika ada info penting: "INFO: [informasi yang diekstrak]"
-- Jika tidak ada: "NONE"
+        Format response:
+        - Jika ada info penting: "INFO: [informasi yang diekstrak]"
+        - Jika tidak ada: "NONE"
 
-Contoh:
-User: "Nama saya Widya dan saya tinggal di Bekasi"
-Response: "INFO: Nama user adalah Widya, User tinggal di Bekasi"
+        Contoh:
+        User: "Nama saya Widya dan saya tinggal di Bekasi"
+        Response: "INFO: Nama user adalah Widya, User tinggal di Bekasi"
 
-User: "Apa kabar hari ini?"
-Response: "NONE"
-"""
+        User: "Apa kabar hari ini?"
+        Response: "NONE"
+        """
         
         analysis_response = memory_llm.invoke([
             SystemMessage(content="Anda adalah AI analyzer yang bertugas mengekstrak informasi penting dari pesan user."),
@@ -154,7 +144,6 @@ Response: "NONE"
             return f"✓ Terdeteksi dan disimpan informasi penting: {info_to_save}"
         else:
             return "Tidak ada informasi penting yang perlu disimpan dari pesan ini."
-            
     except Exception as e:
         return f"Error dalam analisis: {str(e)}"
 
