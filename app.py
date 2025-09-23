@@ -401,37 +401,29 @@ async def list_uploaded_files():
 @app.post("/chat", response_model=ChatResponse)
 def chat(request: ChatRequest):
     try:
-        # Import dari orchestrator
         from LangGraph import react_graph
-        
-        # Config dengan user_id yang passed via configurable
         config = {
             "configurable": {
-                "thread_id": "1234567",
-                "user_id": request.user_id  # Untuk tools akses via config
+                "thread_id": "2",
+                "user_id": request.user_id  
             }
         }
-        
         logger.info(f"Processing chat for user_id: {request.user_id}")
-        
-        # Direct invoke dengan MessagesState (no initial_state needed)
+
         result = react_graph.invoke(
-            {"messages": [HumanMessage(content=request.message)]},  # Built-in MessagesState
-            config=config  # Tools ambil user_id dari sini
+            {"messages": [HumanMessage(content=request.message)]},  
+            config=config 
         )
         
-        # Debug output
         for m in result["messages"]:
             try:
                 m.pretty_print()
             except Exception as e:
                 print(f"[RAW] {m}")
         
-        # Extract final response
         responses = [m.content for m in result["messages"] if hasattr(m, "content") and m.content]
         final_reply = responses[-1] if responses else "Maaf, saya tidak bisa memberikan respons."
         
-        # Extract structured data and images (dari function yang sudah ada)
         structured_data, images = extract_structured_data(result["messages"])
         
         print(f"DEBUG: Extracted structured_data: {structured_data}")

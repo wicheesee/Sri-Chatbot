@@ -18,7 +18,6 @@ GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 index_config: IndexConfig = {
     "dims": 1536,
     "embed": GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001"),
-    "ann_index_config": {"vector_type": "vector"},
     "distance_type": "cosine",
 }
 
